@@ -201,7 +201,7 @@ public:
   }
 
   uint64_t ByteSize() const override {
-    return m_underlying_type.GetByteSize(nullptr);
+    return m_underlying_type.GetByteSize(nullptr).getValueOr(0);
   }
 
   bool IsSigned() const {
@@ -337,7 +337,7 @@ public:
   }
 
   uint64_t ByteSize() const override {
-    return m_elem.GetByteSize(nullptr) * m_length;
+    return m_elem.GetByteSize(nullptr).getValueOr(0) * m_length;
   }
 
   std::string GetCABITypeDeclaration(RustASTContext::TypeNameMap *name_map,
@@ -804,7 +804,7 @@ public:
   }
 
   uint64_t ByteSize() const override {
-    return m_type.GetByteSize(nullptr);
+    return m_type.GetByteSize(nullptr).getValueOr(0);
   }
 
   std::string GetCABITypeDeclaration(RustASTContext::TypeNameMap *name_map,
@@ -1266,7 +1266,7 @@ RustASTContext::GetArrayElementType(lldb::opaque_compiler_type_t type,
   RustArray *array = static_cast<RustType *>(type)->AsArray();
   if (array) {
     if (stride) {
-      *stride = array->ElementType().GetByteSize(nullptr);
+      *stride = array->ElementType().GetByteSize(nullptr).getValueOr(0);
     }
     return array->ElementType();
   }
@@ -1500,7 +1500,8 @@ CompilerType RustASTContext::GetChildCompilerTypeAtIndex(
     CompilerType ret =
         GetFieldAtIndex(type, idx, child_name, &bit_offset, nullptr, nullptr);
     child_byte_size = ret.GetByteSize(
-        exe_ctx ? exe_ctx->GetBestExecutionContextScope() : nullptr);
+        exe_ctx ? exe_ctx->GetBestExecutionContextScope() : nullptr)
+        .getValueOr(0);
     child_byte_offset = bit_offset / 8;
     return ret;
   } else if (RustPointer *ptr = t->AsPointer()) {
@@ -1526,7 +1527,8 @@ CompilerType RustASTContext::GetChildCompilerTypeAtIndex(
       // We have a pointer to an simple type
       if (idx == 0 && pointee.GetCompleteType()) {
         child_byte_size = pointee.GetByteSize(
-            exe_ctx ? exe_ctx->GetBestExecutionContextScope() : NULL);
+            exe_ctx ? exe_ctx->GetBestExecutionContextScope() : NULL)
+            .getValueOr(0);
         child_byte_offset = 0;
         return pointee;
       }
@@ -1539,7 +1541,8 @@ CompilerType RustASTContext::GetChildCompilerTypeAtIndex(
         ::snprintf(element_name, sizeof(element_name), "[%zu]", idx);
         child_name.assign(element_name);
         child_byte_size = element_type.GetByteSize(
-            exe_ctx ? exe_ctx->GetBestExecutionContextScope() : NULL);
+            exe_ctx ? exe_ctx->GetBestExecutionContextScope() : NULL)
+            .getValueOr(0);
         child_byte_offset = (int32_t)idx * (int32_t)child_byte_size;
         return element_type;
       }
@@ -1634,7 +1637,8 @@ bool RustASTContext::DumpTypeValue(lldb::opaque_compiler_type_t type, Stream *s,
       CompilerType typedef_compiler_type = typ->UnderlyingType();
       if (format == eFormatDefault)
         format = typedef_compiler_type.GetFormat();
-      uint64_t typedef_byte_size = typedef_compiler_type.GetByteSize(exe_scope);
+      uint64_t typedef_byte_size = typedef_compiler_type.GetByteSize(exe_scope)
+          .getValueOr(0);
 
       return typedef_compiler_type.DumpTypeValue(
           s,
