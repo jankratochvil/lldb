@@ -37,40 +37,6 @@ if(APPLE)
   add_definitions(-DLLDB_USE_OS_LOG)
 endif()
 
-# lldb-suite is a dummy target that encompasses all the necessary tools and
-# libraries for building a fully-functioning liblldb.
-add_custom_target(lldb-suite)
-set(LLDB_SUITE_TARGET lldb-suite)
-
-option(LLDB_BUILD_FRAMEWORK "Build the Darwin LLDB.framework" Off)
-if(LLDB_BUILD_FRAMEWORK)
-  if (CMAKE_VERSION VERSION_LESS 3.7)
-    message(FATAL_ERROR "LLDB_BUILD_FRAMEWORK is not supported on CMake < 3.7")
-  endif()
-  if (NOT APPLE)
-    message(FATAL_ERROR "LLDB.framework can only be generated when targeting Apple platforms")
-  endif()
-
-  add_custom_target(lldb-framework)
-  # These are used to fill out LLDB-Info.plist. These are relevant when building
-  # the framework, and must be defined before building liblldb.
-  set(PRODUCT_NAME "LLDB")
-  set(EXECUTABLE_NAME "LLDB")
-  set(CURRENT_PROJECT_VERSION "360.99.0")
-  set(LLDB_SUITE_TARGET lldb-framework)
-
-  set(LLDB_FRAMEWORK_DIR
-    ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${LLDB_FRAMEWORK_INSTALL_DIR})
-  include(LLDBFramework)
-endif()
-
-if (NOT LLDB_DISABLE_PYTHON)
-   execute_process(
-     COMMAND
-        ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/get_libdir_suffix.py
-     OUTPUT_VARIABLE LLDB_PY_LIB_SUFFIX)
-endif ()
-
 add_subdirectory(docs)
 if (NOT LLDB_DISABLE_PYTHON)
   if(LLDB_USE_SYSTEM_SIX)
@@ -188,9 +154,9 @@ if (NOT LLDB_DISABLE_PYTHON)
                --cfgBldDir=${LLDB_PYTHON_TARGET_DIR}
                --prefix=${CMAKE_BINARY_DIR}
                --cmakeBuildConfiguration=${CMAKE_CFG_INTDIR}
-               --lldbLibDir=lib${LLDB_PY_LIB_SUFFIX}
-               ${SIX_EXTRA_ARGS}
-               ${FINISH_EXTRA_ARGS}
+               --lldbLibDir=lib${LLVM_LIBDIR_SUFFIX}
+               ${use_python_wrapper_from_src_dir}
+               ${use_six_py_from_system}
         VERBATIM
         DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/finishSwigWrapperClasses.py
         DEPENDS ${LLDB_PYTHON_TARGET_DIR}/lldb.py
